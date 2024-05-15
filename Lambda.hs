@@ -1,6 +1,7 @@
 module Lambda where
 
 import Data.List (nub, (\\))
+import Data.Char (ord, chr)
 
 data Lambda = Var String
             | App Lambda Lambda
@@ -35,7 +36,6 @@ vars expr = nub $ aux expr
 freeVars :: Lambda -> [String]
 freeVars expr = nub $ aux expr []
   where
-    aux :: Lambda -> [String] -> [String]
     aux (Var x) bound
       | x `elem` bound = []
       | otherwise = [x]
@@ -45,7 +45,25 @@ freeVars expr = nub $ aux expr []
 
 -- 1.3.
 newVar :: [String] -> String
-newVar = undefined
+newVar l = head $ filter (\x -> not $ elem x l) stringGen
+  -- if last (last l) /= 'z'
+  --   then init (last l) ++ [Data.Char.chr (Data.Char.ord (last $ last l) + 1)]
+  -- else
+  --   map (const 'a') $ last l ++ "a"
+
+-- stringGen :: [String]
+-- stringGen = "a" : stringGen
+-- stringGen =
+--   if last s /= 'z'
+--     then init s ++ [Data.Char.chr (Data.Char.ord (last $ last l) + 1)]
+--   else
+--     map (const 'a') s ++ "a"
+
+stringGen :: [String]
+stringGen = concatMap gen [1..]
+  where
+    gen :: Int -> [String]
+    gen len = mapM (const ['a'..'z']) [1..len]
 
 -- 1.4.
 isNormalForm :: Lambda -> Bool
