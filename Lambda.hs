@@ -16,7 +16,7 @@ instance Show Lambda where
 instance Eq Lambda where
     e1 == e2 = eq e1 e2 ([],[],[])
       where
-        eq (Var x) (Var y) (env,xb,yb) = elem (x,y) env || (not $ elem x xb || elem y yb)
+        eq (Var x) (Var y) (env,xb,yb) = elem (x,y) env || not (elem x xb || elem y yb)
         eq (App e1 e2) (App f1 f2) env = eq e1 f1 env && eq e2 f2 env
         eq (Abs x e) (Abs y f) (env,xb,yb) = eq e f ((x,y):env,x:xb,y:yb)
         eq (Macro x) (Macro y) _ = x == y
@@ -24,11 +24,24 @@ instance Eq Lambda where
 
 -- 1.1.
 vars :: Lambda -> [String]
-vars = undefined
+vars expr = nub $ aux expr
+  where
+    aux (Var x) = [x]
+    aux (App e1 e2) = aux e1 ++ aux e2
+    aux (Abs x e) = x : aux e
+    aux (Macro x) = [x]
 
 -- 1.2.
 freeVars :: Lambda -> [String]
-freeVars = undefined
+freeVars expr = nub $ aux expr []
+  where
+    aux :: Lambda -> [String] -> [String]
+    aux (Var x) bound
+      | x `elem` bound = []
+      | otherwise = [x]
+    aux (App e1 e2) bound = aux e1 bound ++ aux e2 bound
+    aux (Abs x e) bound = aux e (x : bound)
+    aux (Macro x) _ = [x]
 
 -- 1.3.
 newVar :: [String] -> String
