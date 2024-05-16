@@ -67,17 +67,28 @@ reduce x e1 e2 = substitute e1
     substitute :: Lambda -> Lambda
     substitute (Var y)
       | x == y = e2
+      -- if it's an incoming bound element we have to replace the og's string with a new one
+      -- e.g. (λx.λy.(x y) λx.y) => λa.(λx.y a)
       | otherwise = if y `elem` freeVars e1 then Var y else Var $ newVar $ freeVars e1
     substitute (App e1' e2') = App (substitute e1') (substitute e2')
     substitute (Abs y e)
       | x == y = Abs y e
+      -- same here
       | otherwise = if y `notElem` freeVars e then Abs y (substitute e) else Abs (newVar $ freeVars e) (substitute e)
     substitute (Macro m) = Macro m
 
 -- 1.6.
 normalStep :: Lambda -> Lambda
-normalStep = undefined
-
+-- try to reduce the leftmost
+normalStep (App (App (Abs x e) e1) e2) = App (reduce x e e1) e2
+-- then the outermost
+normalStep (App (Abs x e1) e2) = reduce x e1 e2
+normalStep (App e1 e2) = let
+                            e1' = normalStep e1
+                            e2' = normalStep e2
+                          in App e1' e2'
+normalStep (Abs x e) = Abs x (normalStep e)
+normalStep expr = expr
 -- 1.7.
 applicativeStep :: Lambda -> Lambda
 applicativeStep = undefined
