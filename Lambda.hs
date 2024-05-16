@@ -107,7 +107,12 @@ applicativeStep e = e
 
 -- 1.8.
 simplify :: (Lambda -> Lambda) -> Lambda -> [Lambda]
-simplify = undefined
+simplify stepFunc expr = reverse $ aux [expr]
+  where
+    aux :: [Lambda] -> [Lambda]
+    aux (e:steps)
+      | isNormalForm e = e : steps
+      | otherwise = aux (stepFunc e : e : steps)
 
 normal :: Lambda -> [Lambda]
 normal = simplify normalStep
