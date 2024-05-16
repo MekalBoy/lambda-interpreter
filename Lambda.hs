@@ -62,7 +62,17 @@ isNormalForm (Macro _) = True
 
 -- 1.5.
 reduce :: String -> Lambda -> Lambda -> Lambda
-reduce x e1 e2 = undefined
+reduce x e1 e2 = substitute e1
+  where
+    substitute :: Lambda -> Lambda
+    substitute (Var y)
+      | x == y = e2
+      | otherwise = if y `elem` freeVars e1 then Var y else Var $ newVar $ freeVars e1
+    substitute (App e1' e2') = App (substitute e1') (substitute e2')
+    substitute (Abs y e)
+      | x == y = Abs y e
+      | otherwise = if y `notElem` freeVars e then Abs y (substitute e) else Abs (newVar $ freeVars e) (substitute e)
+    substitute (Macro m) = Macro m
 
 -- 1.6.
 normalStep :: Lambda -> Lambda
