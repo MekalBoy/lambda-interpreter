@@ -74,8 +74,8 @@ reduce x e1 e2 = substitute e1
     substitute (Abs y e)
       | x == y = Abs y e
       -- same here
-      | otherwise = if y `notElem` freeVars e then Abs y (substitute e) else Abs (newVar $ freeVars e) (substitute e)
-    substitute (Macro m) = Macro m
+      | otherwise = if y `elem` freeVars e1 then Abs y (substitute e) else Abs (newVar $ freeVars e1) (substitute e)
+    substitute e = e
 
 -- 1.6.
 normalStep :: Lambda -> Lambda
@@ -88,10 +88,22 @@ normalStep (App e1 e2) = let
                             e2' = normalStep e2
                           in App e1' e2'
 normalStep (Abs x e) = Abs x (normalStep e)
-normalStep expr = expr
+normalStep e = e
+
 -- 1.7.
 applicativeStep :: Lambda -> Lambda
-applicativeStep = undefined
+-- innermost leftmost
+applicativeStep (App (App (Abs x e) e1) e2) = App (reduce x e e1) e2
+-- inntermost rightmost
+applicativeStep (App e1 (App (Abs x e) e2)) = App e1 (reduce x e e2)
+-- outermost
+applicativeStep (App (Abs x e1) e2) = reduce x e1 e2
+applicativeStep (App e1 e2) = let
+                                  e1' = applicativeStep e1
+                                  e2' = applicativeStep e2
+                              in App e1' e2'
+applicativeStep (Abs x e) = Abs x (applicativeStep e)
+applicativeStep e = e
 
 -- 1.8.
 simplify :: (Lambda -> Lambda) -> Lambda -> [Lambda]
