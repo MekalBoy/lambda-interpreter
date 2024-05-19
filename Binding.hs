@@ -12,8 +12,27 @@ instance Show Line where
     show (Binding s l) = s ++ " = " ++ show l
 
 -- 3.1.
+-- simplifyCtx :: Context -> (Lambda -> Lambda) -> Lambda -> Either String [Lambda]
+-- simplifyCtx ctx step lamb = Right $ simplify step (evalMacros ctx lamb)
+
+-- evalMacros :: [(String, Lambda)] -> Lambda -> Lambda
+-- evalMacros _ expr@(Var _) = expr
+-- evalMacros context (Abs s e) = Abs s (evalMacros context e)
+-- evalMacros context (App e1 e2) = App (evalMacros context e1) (evalMacros context e2)
+-- evalMacros context expr@(Macro m) = maybe expr (evalMacros context) (lookup m context)
+
 simplifyCtx :: Context -> (Lambda -> Lambda) -> Lambda -> Either String [Lambda]
-simplifyCtx = undefined
+simplifyCtx ctx step lamb = do
+    initial <- evalMacros ctx lamb
+    Right $ simplify step initial
+
+evalMacros :: Context -> Lambda -> Either String Lambda
+evalMacros _ expr@(Var _) = Right expr
+evalMacros context (Abs s e) = Abs s <$> evalMacros context e
+evalMacros context (App e1 e2) = App <$> evalMacros context e1 <*> evalMacros context e2
+evalMacros context expr@(Macro m) = case lookup m context of
+    Just e  -> evalMacros context e
+    Nothing -> Left $ "Macro not found: " ++ m
 
 normalCtx :: Context -> Lambda -> Either String [Lambda]
 normalCtx ctx = simplifyCtx ctx normalStep
