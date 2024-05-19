@@ -23,12 +23,18 @@ y = Abs "f" $ App fix fix
   where fix = Abs "x" $ App vf (App vx vx)
 
 -- 4.1. Boolean encodings
-bTrue = undefined
-bFalse = undefined
-bAnd = undefined
-bOr = undefined
-bNot = undefined
-bXor = undefined
+-- λx.λy.x
+bTrue = Abs "x" $ Abs "y" vx
+-- λx.λy.y
+bFalse = Abs "x" $ Abs "y" vy
+-- λa.λb.((a b) a)
+bAnd = Abs "a" $ Abs "b" $ App (App (Var "a") (Var "b")) (Var "a")
+-- λa.λb.((a a) b)
+bOr = Abs "a" $ Abs "b" $ App (App (Var "a") (Var "a")) (Var "b")
+-- λa.((a bFalse) bTrue)
+bNot = Abs "a" $ App (App (Var "a") bFalse) bTrue
+-- λa.λb.(a (b bFalse bTrue) (b bTrue bFalse))
+bXor = Abs "a" $ Abs "b" $ App (App (Var "a") (App (App (Var "b") bFalse) bTrue)) (App (App (Var "b") bTrue) bFalse)
 
 -- 4.2. Pair encodings
 pair = undefined
