@@ -5,7 +5,6 @@ import Control.Applicative
 
 import Lambda
 import Binding
-import Data.List
 
 newtype Parser a = Parser { parse :: String -> Maybe (a, String) }
 
@@ -33,15 +32,6 @@ splitWordBy check str =
         [] -> [firstPart, ""]
         (_:secondPart) -> [firstPart, secondPart]
 
--- breaker for last occurence -- does not work correctly for stuff like (x (y z)) -> ["(x (y", "z))"]
-splitLastBy :: (Char -> Bool) -> String -> [String]
-splitLastBy check str =
-    case findIndices check str of
-        [] -> [str, ""]
-        indices -> let lastIndex = last indices
-                       (firstPart, secondPart) = splitAt lastIndex str
-                   in [firstPart, tail secondPart]
-
 splitByThing :: (Char -> Bool) -> String -> [String]
 splitByThing check str = aux check str 0 ""
   where
@@ -56,4 +46,13 @@ splitByThing check str = aux check str 0 ""
 
 -- 3.3.
 parseLine :: String -> Either String Line
-parseLine = undefined
+parseLine str =
+    case break (== '=') str of
+        (var, '=':expr) ->
+            if null var || null expr
+            then Left "Error: Invalid binding format."
+            else Right $ Binding var (parseLambda expr)
+        (evalStr, "") ->
+            if (head evalStr /= head "\\" && head evalStr /= head "(") && not (null $ last (splitWordBy (== ' ') evalStr))
+            then Left "Error: Bad input."
+            else Right $ Eval (parseLambda str)
