@@ -14,6 +14,7 @@ parseLambda :: String -> Lambda
 parseLambda str
     | head str == head "\\" = Abs (head $ wordsWhen (=='.') $ tail str) (parseLambda $ head $ tail $ splitWordBy (=='.') $ tail $ tail str)
     | head str == head "(" = App (parseLambda $ head $ splitByThing (==' ') $ tail $ init str) (parseLambda $ last $ splitByThing (==' ') $ tail $ init str)
+    | head str >= 'A' && head str <= 'Z' || head str >= '0' && head str <= '9' = Macro str
     | otherwise = Var str
 
 -- words but for other stuff like (==',')
