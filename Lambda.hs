@@ -67,15 +67,25 @@ reduce x e1 e2 = substitute e1
     substitute :: Lambda -> Lambda
     substitute (Var y)
       | x == y = e2
-      -- if it's an incoming bound element we have to replace the og's string with a new one
-      -- e.g. (λx.λy.(x y) λx.y) => λa.(λx.y a)
-      | otherwise = if y `elem` freeVars e1 then Var y else Var $ newVar $ freeVars e1
+      | otherwise = Var y
     substitute (App e1' e2') = App (substitute e1') (substitute e2')
     substitute (Abs y e)
       | x == y = Abs y e
-      -- same here
-      | otherwise = if y `elem` freeVars e1 then Abs y (substitute e) else Abs (newVar $ freeVars e1) (substitute e)
+      | y `elem` freeVars e2 = let newY = newVar (freeVars e1 ++ freeVars e2)
+                               in Abs newY (substitute (renameVar y newY e))
+      | otherwise = Abs y (substitute e)
     substitute e = e
+
+    -- Rename a variable within an expression
+    renameVar :: String -> String -> Lambda -> Lambda
+    renameVar old new (Var y)
+      | y == old = Var new
+      | otherwise = Var y
+    renameVar old new (Abs y body)
+      | y == old = Abs new (renameVar old new body)
+      | otherwise = Abs y (renameVar old new body)
+    renameVar old new (App e1' e2') = App (renameVar old new e1') (renameVar old new e2')
+    renameVar _ _ e = e
 
 -- 1.6.
 normalStep :: Lambda -> Lambda

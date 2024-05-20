@@ -33,23 +33,43 @@ bAnd = Abs "a" $ Abs "b" $ App (App (Var "a") (Var "b")) (Var "a")
 bOr = Abs "a" $ Abs "b" $ App (App (Var "a") (Var "a")) (Var "b")
 -- λa.((a bFalse) bTrue)
 bNot = Abs "a" $ App (App (Var "a") bFalse) bTrue
--- λa.λb.(a (b bFalse bTrue) (b bTrue bFalse))
+-- λa.λb.((a ((b bFalse) bTrue)) ((b bTrue) bFalse))
 bXor = Abs "a" $ Abs "b" $ App (App (Var "a") (App (App (Var "b") bFalse) bTrue)) (App (App (Var "b") bTrue) bFalse)
 
 -- 4.2. Pair encodings
-pair = undefined
-first = undefined
-second = undefined
+pair = Abs "x" $ Abs "y" $ Abs "f" $ App (App (Var "f") (Var "x")) (Var "y")
+first = Abs "p" $ App (Var "p") bTrue
+second = Abs "p" $ App (Var "p") bFalse
 
 -- 4.3. Natural number encodings
-n0 = undefined
-n1 = undefined
-n2 = undefined
-nSucc = undefined
-nPred = undefined
-nAdd = undefined
-nSub = undefined
-nMult = undefined
+-- n0 = λf.λx.x
+n0 :: Lambda
+n0 = Abs "f" $ Abs "x" $ Var "x"
+-- n1 = λf.λx.f x
+n1 :: Lambda
+n1 = Abs "f" $ Abs "x" $ App (Var "f") (Var "x")
+-- n2 = λf.λx.f (f x)
+n2 :: Lambda
+n2 = Abs "f" $ Abs "x" $ App (Var "f") $ App (Var "f") (Var "x")
+-- SUCC = λn.λf.λx.f (n f x)
+nSucc :: Lambda
+nSucc = Abs "n" $ Abs "f" $ Abs "x" $ App (Var "f") $ App (App (Var "n") (Var "f")) (Var "x")
+-- PRED = λn.λf.λx.n (λg.λh.h (g f)) (λu.x) (λu.u)
+nPred :: Lambda
+nPred = Abs "n" $ Abs "f" $ Abs "x" $
+    App (App (App (Var "n")
+        (Abs "g" $ Abs "h" $ App (Var "h") $ App (Var "g") (Var "f")))
+        (Abs "u" $ Var "x"))
+        (Abs "u" $ Var "u")
+-- ADD = λm.λn.λf.λx.m f (n f x)
+nAdd :: Lambda
+nAdd = Abs "m" $ Abs "n" $ Abs "f" $ Abs "x" $ App (App (Var "m") (Var "f")) $ App (App (Var "n") (Var "f")) (Var "x")
+-- SUB = λm.λn.n PRED m
+nSub :: Lambda
+nSub = Abs "m" $ Abs "n" $ App (App (Var "n") nPred) (Var "m")
+-- MULT = λm.λn.λf.m (n f)
+nMult :: Lambda
+nMult = Abs "m" $ Abs "n" $ Abs "f" $ App (Var "m") (App (Var "n") (Var "f"))
 
 -- Default Context
 defaultContext :: Context
