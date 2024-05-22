@@ -34,7 +34,12 @@ bOr = Abs "a" $ Abs "b" $ App (App (Var "a") (Var "a")) (Var "b")
 -- λa.((a bFalse) bTrue)
 bNot = Abs "a" $ App (App (Var "a") bFalse) bTrue
 -- λa.λb.((a ((b bFalse) bTrue)) ((b bTrue) bFalse))
-bXor = Abs "a" $ Abs "b" $ App (App (Var "a") (App (App (Var "b") bFalse) bTrue)) (App (App (Var "b") bTrue) bFalse)
+bXor = Abs "a" $ Abs "b" $
+  App
+    (App
+      (Var "a")
+      (App (App (Var "b") bFalse) bTrue))
+    (App (App (Var "b") bTrue) bFalse)
 
 -- 4.2. Pair encodings
 pair = Abs "x" $ Abs "y" $ Abs "f" $ App (App (Var "f") (Var "x")) (Var "y")
@@ -82,7 +87,10 @@ nSub :: Lambda
 nSub = Abs "m" $ Abs "n" $ App (App (Var "n") nPred) (Var "m")
 -- λm.λn.λf.(m (n f))
 nMult :: Lambda
-nMult = Abs "m" $ Abs "n" $ Abs "f" $ App (Var "m") (App (Var "n") (Var "f"))
+nMult = Abs "m" $ Abs "n" $ Abs "f" $
+  App
+    (Var "m")
+    (App (Var "n") (Var "f"))
 
 -- Default Context
 defaultContext :: Context
