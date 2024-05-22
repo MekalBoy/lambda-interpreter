@@ -5,16 +5,115 @@ import Control.Applicative
 
 import Lambda
 import Binding
+import Data.Char (isAlpha)
 
 newtype Parser a = Parser { parse :: String -> Maybe (a, String) }
 
+apply (Parser p) = p
+
+instance Applicative Parser where
+  af <*> mp =
+    do
+      f <- af
+      f <$> mp
+  pure = return
+
+instance Functor Parser where
+  fmap f mp =
+    do
+      f <$> mp
+
+instance Monad Parser where
+    mp >>= f = Parser {
+        parse = \s -> case parse mp s of
+            Nothing -> Nothing
+            Just(val, rst) -> parse (f val) rst
+    }
+
+    return x = Parser {parse = \s -> Just (x, s)}
+
+instance Alternative Parser where
+  empty = failParser
+  p1 <|> p2 = Parser $ \s -> case parse p1 s of
+                                Nothing -> parse p2 s
+                                x -> x
+
+plusParser :: Parser a -> Parser [a]
+plusParser p = do
+        x <- p
+        xs <- starParser p
+        return (x:xs)
+
+starParser :: Parser a -> Parser [a]
+starParser p = plusParser p <|> return []
+
+failParser :: Parser a
+failParser = Parser {parse = \s -> Nothing}
+
+charParser :: Char -> Parser Char
+charParser c = Parser {
+    parse = \s -> case s of
+        [] -> Nothing
+        (x:xs) -> if x == c then Just (x, xs) else Nothing
+}
+
+predicateParser :: (Char -> Bool) -> Parser Char
+predicateParser p = Parser {
+    parse = \s -> case s of
+        [] -> Nothing
+        (x:xs) -> if p x then Just (x, xs) else Nothing
+}
+
+varParser :: Parser String
+varParser = do
+    x <- plusParser (predicateParser isAlpha)
+    return x
+
+varLambda :: Parser Lambda
+varLambda = do
+    x <- varParser
+    return (Var x)
+
+absLambda :: Parser Lambda
+absLambda = do
+    charParser '\\'
+    var <- varParser
+    charParser '.'
+    lambda <- totalParser
+    return (Abs var lambda)
+
+appLambda :: Parser Lambda
+appLambda = do
+    charParser '('
+    l1 <- totalParser
+    plusParser (charParser ' ')
+    l2 <- totalParser
+    charParser ')'
+    return (App l1 l2)
+
+macroLambda :: Parser Lambda
+macroLambda = do
+    str <- plusParser (predicateParser (\c -> c >= 'A' && c <= 'Z' || c >= '0' && c <= '9'))
+    return (Macro str)
+
+totalParser :: Parser Lambda
+totalParser = do
+    x <- absLambda <|> appLambda <|> macroLambda <|> varLambda
+    return x
+
 -- 2.1. / 3.2.
 parseLambda :: String -> Lambda
-parseLambda str
-    | head str == head "\\" = Abs (head $ wordsWhen (=='.') $ tail str) (parseLambda $ head $ tail $ splitWordBy (=='.') $ tail $ tail str)
-    | head str == head "(" = App (parseLambda $ head $ splitByThing (==' ') $ tail $ init str) (parseLambda $ last $ splitByThing (==' ') $ tail $ init str)
-    | head str >= 'A' && head str <= 'Z' || head str >= '0' && head str <= '9' = Macro str
-    | otherwise = Var str
+parseLambda s = case apply totalParser s of
+  Just(lambda, _) -> lambda
+
+-- monad-less implementation of the parser
+-- 2.1. / 3.2.
+-- parseLambda :: String -> Lambda
+-- parseLambda str
+--     | head str == head "\\" = Abs (head $ wordsWhen (=='.') $ tail str) (parseLambda $ head $ tail $ splitWordBy (=='.') $ tail $ tail str)
+--     | head str == head "(" = App (parseLambda $ head $ splitByThing (==' ') $ tail $ init str) (parseLambda $ last $ splitByThing (==' ') $ tail $ init str)
+--     | head str >= 'A' && head str <= 'Z' || head str >= '0' && head str <= '9' = Macro str
+--     | otherwise = Var str
 
 -- words but for other stuff like (==',')
 wordsWhen :: (Char -> Bool) -> String -> [String]

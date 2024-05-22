@@ -22,7 +22,7 @@ evalMacros _ expr@(Var _) = Right expr
 evalMacros context (Abs s e) = Abs s <$> evalMacros context e
 evalMacros context (App e1 e2) = App <$> evalMacros context e1 <*> evalMacros context e2
 evalMacros context expr@(Macro m) = case lookup m context of
-    Just e  -> evalMacros context e
+    Just e -> evalMacros context e
     Nothing -> Left $ "Macro not found: " ++ m
 
 normalCtx :: Context -> Lambda -> Either String [Lambda]
