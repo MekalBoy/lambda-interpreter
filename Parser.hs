@@ -69,41 +69,44 @@ varParser = do
     x <- plusParser (predicateParser isAlpha)
     return x
 
-varLambda :: Parser Lambda
-varLambda = do
+varLambdaParser :: Parser Lambda
+varLambdaParser = do
     x <- varParser
     return (Var x)
 
-absLambda :: Parser Lambda
-absLambda = do
+absParser :: Parser Lambda
+absParser = do
     charParser '\\'
     var <- varParser
     charParser '.'
-    lambda <- totalParser
+    lambda <- lambdaParser
     return (Abs var lambda)
 
-appLambda :: Parser Lambda
-appLambda = do
+appParser :: Parser Lambda
+appParser = do
     charParser '('
-    l1 <- totalParser
-    plusParser (charParser ' ')
-    l2 <- totalParser
+    l1 <- lambdaParser
+    charParser ' '
+    l2 <- lambdaParser
     charParser ')'
     return (App l1 l2)
 
-macroLambda :: Parser Lambda
-macroLambda = do
-    str <- plusParser (predicateParser (\c -> c >= 'A' && c <= 'Z' || c >= '0' && c <= '9'))
+bigString :: Parser String
+bigString = do
+    plusParser (predicateParser (\c -> c >= 'A' && c <= 'Z' || c >= '0' && c <= '9'))
+
+macroParser :: Parser Lambda
+macroParser = do
+    str <- bigString
     return (Macro str)
 
-totalParser :: Parser Lambda
-totalParser = do
-    x <- absLambda <|> appLambda <|> macroLambda <|> varLambda
-    return x
+lambdaParser :: Parser Lambda
+lambdaParser = do
+    absParser <|> appParser <|> macroParser <|> varLambdaParser
 
 -- 2.1. / 3.2.
 parseLambda :: String -> Lambda
-parseLambda s = case apply totalParser s of
+parseLambda s = case apply lambdaParser s of
   Just(lambda, _) -> lambda
 
 -- monad-less implementation of the parser
@@ -143,15 +146,39 @@ splitByThing check str = aux check str 0 ""
         | x == ')' = aux check xs (n - 1) (x:acc)
         | otherwise = aux check xs n (x:acc)
 
+substituteParser :: Parser Line
+substituteParser = do
+    macro <- bigString
+    charParser '='
+    lambda <- lambdaParser
+    return (Binding macro lambda)
+
+evalParser :: Parser Line
+evalParser = do
+    lambda <- lambdaParser
+    return (Eval lambda)
+
+lineParser :: Parser Line
+lineParser = do
+    substituteParser <|> evalParser
+
 -- 3.3.
 parseLine :: String -> Either String Line
-parseLine str =
-    case break (== '=') str of
-        (var, '=':expr) ->
-            if null var || null expr
-            then Left "Error: Invalid binding format."
-            else Right $ Binding var (parseLambda expr)
-        (evalStr, "") ->
-            if (head evalStr /= head "\\" && head evalStr /= head "(") && not (null $ last (splitWordBy (== ' ') evalStr))
-            then Left "Error: Bad input."
-            else Right $ Eval (parseLambda str)
+parseLine str = case apply lineParser str of
+    Just (line, rest) -> if null rest
+                         then Right line
+                         else Left "Error: Input not fully consumed."
+    Nothing -> Left "Error: Bad input."
+
+-- 3.3.
+-- parseLine :: String -> Either String Line
+-- parseLine str =
+--     case break (== '=') str of
+--         (var, '=':expr) ->
+--             if null var || null expr
+--             then Left "Error: Invalid binding format."
+--             else Right $ Binding var (parseLambda expr)
+--         (evalStr, "") ->
+--             if (head evalStr /= head "\\" && head evalStr /= head "(") && not (null $ last (splitWordBy (== ' ') evalStr))
+--             then Left "Error: Bad input."
+--             else Right $ Eval (parseLambda str)
