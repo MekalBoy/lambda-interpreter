@@ -35,9 +35,7 @@ vars expr = nub $ aux expr
 freeVars :: Lambda -> [String]
 freeVars expr = nub $ aux expr []
   where
-    aux (Var x) bound
-      | x `elem` bound = []
-      | otherwise = [x]
+    aux (Var x) bound = [x | x `notElem` bound]
     aux (App e1 e2) bound = aux e1 bound ++ aux e2 bound
     aux (Abs x e) bound = aux e (x : bound)
     aux (Macro x) _ = [x]
@@ -76,16 +74,12 @@ reduce x e1 e2 = substitute e1
       | otherwise = Abs y (substitute e)
     substitute e = e
 
-    -- Rename a variable within an expression
-    renameVar :: String -> String -> Lambda -> Lambda
-    renameVar old new (Var y)
-      | y == old = Var new
-      | otherwise = Var y
-    renameVar old new (Abs y body)
-      | y == old = Abs new (renameVar old new body)
-      | otherwise = Abs y (renameVar old new body)
-    renameVar old new (App e1' e2') = App (renameVar old new e1') (renameVar old new e2')
-    renameVar _ _ e = e
+-- Rename a variable within an expression
+renameVar :: String -> String -> Lambda -> Lambda
+renameVar old new (Var y) = if y == old then Var new else Var y
+renameVar old new (Abs y body) = if y == old then Abs new (renameVar old new body) else Abs y (renameVar old new body)
+renameVar old new (App e1 e2) = App (renameVar old new e1) (renameVar old new e2)
+renameVar _ _ e = e
 
 -- 1.6.
 normalStep :: Lambda -> Lambda

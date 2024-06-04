@@ -42,6 +42,7 @@ bXor = Abs "a" $ Abs "b" $
     (App (App (Var "b") bTrue) bFalse)
 
 -- 4.2. Pair encodings
+-- λx.λy.λf.((f x) y)
 pair = Abs "x" $ Abs "y" $ Abs "f" $ App (App (Var "f") (Var "x")) (Var "y")
 first = Abs "p" $ App (Var "p") bTrue
 second = Abs "p" $ App (Var "p") bFalse
@@ -94,7 +95,7 @@ nMult = Abs "m" $ Abs "n" $ Abs "f" $
 
 -- Default Context
 defaultContext :: Context
-defaultContext = 
+defaultContext =
     [ ("M", m)
     , ("I", i)
     , ("K", k)
